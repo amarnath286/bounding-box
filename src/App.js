@@ -4,41 +4,66 @@ import Boundingbox from 'react-bounding-box';
 
 class App extends React.Component {
   state = {
-    url : null,
-    rects:[[110, 30, 70, 70], [40, 30, 70, 70]],
+    selected: false
   };
 
+  canvas = null;
+  ctx = null;
+  rect = {};
+  imageObj = null;
+  drag = false;
+
   componentDidMount() {
-    this.drawRects();
+    this.init();
   }
 
-  drawRects() {
-      var self = this;
-      var myImage = new Image();
-      myImage.src = "https://image.shutterstock.com/image-photo/bright-spring-view-cameo-island-260nw-1048185397.jpg";
-      const ctx = this.refs.canvas2.getContext('2d');
-      myImage.onload = function() {
-      // var width = 300;
-      // var height = 400;
-      ctx.drawImage(myImage, 0, 0, 300, 200);
+  init() {
+    let self = this;
+    this.canvas = document.getElementById('canvas2');
+    this.ctx = this.canvas.getContext('2d');
+    this.imageObj = new Image();
+    this.imageObj.src = 'https://image.shutterstock.com/image-photo/bright-spring-view-cameo-island-260nw-1048185397.jpg';
+    this.imageObj.onload = function () { self.ctx.drawImage(self.imageObj, 0, 0); };
+    this.ctx.strokeStyle = 'red';
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.strokeRect(this.rect.startX, this.rect.startY, this.rect.w, this.rect.h);
+    this.canvas.addEventListener('mousedown', this.mouseDown.bind(this), false);
+    this.canvas.addEventListener('mouseup', this.mouseUp.bind(this), false);
+    this.canvas.addEventListener('mousemove', this.mouseMove.bind(this), false);
+  };
 
-      ctx.beginPath();
-      ctx.strokeStyle="white";
-      for(var i=0;i<self.state.rects.length;i++) {
-        ctx.rect(self.state.rects[i][0],
-                 self.state.rects[i][1],
-                 self.state.rects[i][2],
-                 self.state.rects[i][3]);
-      }
-      ctx.stroke();
+  getSelectionStr() {
+    if (this.state.selected) {
+      return `x1: ${this.rect.startX}, y1: ${this.rect.startY}, x2: ${this.rect.w}, y2: ${this.rect.h}`
     }
   }
 
-  showCoords(event) { 
-      var x = event.clientX;
-      var y = event.clientY;
-      var coords = "X coords: " + x + ", Y coords: " + y;
-      document.getElementById("demo").innerHTML = coords;
+  mouseDown(e){
+    this.drag = true;
+    this.rect.startX = e.pageX;
+    this.rect.startY = e.pageY;
+  }
+
+  mouseUp(e){
+    this.drag = false
+    this.setState({
+      selected: true
+    })
+  }
+
+  mouseMove(e){
+    if (this.drag) {
+      let self = this;
+      this.ctx.clearRect(0, 0, 500, 500);
+      this.ctx.drawImage(self.imageObj, 0, 0);
+      this.rect.w = (e.pageX) - this.rect.startX;
+      this.rect.h = (e.pageY) - this.rect.startY;
+      this.ctx.strokeStyle = 'red';
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.strokeRect(this.rect.startX, this.rect.startY, this.rect.w, this.rect.h);
+    }
   }
 
   selectFile = (e) => {
@@ -62,6 +87,7 @@ class App extends React.Component {
         // {coord: [300, 0, 250, 250], label: "B"},
         // {coord: [700, 0, 300, 25], label: "C"},
         // {coord: [1100, 0, 25, 300], label: "D"}
+        // onMouseUp={this.mouseup} onMouseMove={this.mousemove}
       ],
       options: {
         colors: {
@@ -76,6 +102,7 @@ class App extends React.Component {
         showLabels: false
       }
     };
+
     return (
       <div className="App">
         <input type="file" id="inp" onChange={this.selectFile} />
@@ -93,9 +120,9 @@ class App extends React.Component {
           boxes={params.boxes}
           options={params.options}
         />
-        <canvas ref="canvas2" id="canvas2" onClick={this.showCoords} />
-        
-        <p id="demo"></p>
+        <canvas ref="canvas2" id="canvas2"></canvas>
+        <br /><br />
+        {this.getSelectionStr()}
       </div>
     );
   }
